@@ -2,7 +2,7 @@ import '@logseq/libs'
 
 async function main () {
     const updates = await getMessages(logseq.settings["TelegramBotToken"])
-    const messages = getLinksFromUpdates(updates,logseq.settings["AllowedUsers"].split(","))
+    const messages = getLinksFromUpdates(updates,logseq.settings["AllowedUsers"].split(",").map(i => Number(i)))
     for (const message of messages){
         for (const link of message){
             const {url, title} = await resolveUrlAndTitle(link)
@@ -27,16 +27,19 @@ async function getMessages(telegramToken: string, offset?:Number):Promise<Object
     // Get updates
     const endpoint = apiEndpoint + "bot" + telegramToken + "/" + updatesEndpoint;
 
-    const offsetArgument = offset != null? "?offset="+offset.toString() : "" 
+    const offsetArgument = offset !== null? "?offset="+offset : "" 
     const endpointWithOffset = endpoint + offsetArgument
 
-    const updates = await fetch(endpointWithOffset).then(res => res.json()).catch((err) => {throw new Error("Unable to fetch the telegram API endpoint (or parsing the JSON): "+ err)})
+    const updates = await fetch(endpointWithOffset)
+        .then(res => res.json())
+        .catch((err) => {throw new Error("Unable to fetch the telegram API endpoint (or parsing the JSON): "+ err)})
+
     if (!updates.ok){
         throw new Error("Not ok with telegram API endpoint")
     }
     //Confirm the updates to not have to face them again
     if (updates.ok && updates.result.length > 0)
-        fetch(endpoint + "?offset="+updates.result[updates.result.length -1].update_id +1)
+        await fetch(endpoint + "?offset=" + (updates.result[updates.result.length -1].update_id +1) )
 
     let results:Object[] = []
     for (const update of updates.result){
@@ -86,9 +89,6 @@ function addArticle(url:string, title:string){
     const currentDate = new Date()
     const currentDateString = currentDate.getDate().toString().padStart(2, "0") + "-" + (currentDate.getMonth()+1).toString().padStart(2, "0") + "-" + currentDate.getFullYear()
     console.log(currentDateString, url, title)
-    //let page
-    //logseq.Editor.getPage(currentDateString).then(p => page = p)
-    //console.log(page)
     logseq.Editor.insertBlock(currentDateString, `[${title}](${url}) #Article #Todo`)
 }
 
