@@ -77,19 +77,26 @@ function getLinksFromUpdates(messages:any, users:Number[]){
 }
 
 async function resolveUrlAndTitle(url:string){
-    let r = await fetch(url)
-
-    let pageUrl = r.url
-    let pageText = await r.text()
-    var parsedResponse = (new DOMParser()).parseFromString(pageText, "text/html");
-    return {url: pageUrl, title: parsedResponse.title}
+    let pageUrl = url
+    let pageTitle = url
+    try{
+        let r = await fetch(url)
+        pageUrl = r.url
+        let pageRawBody = await r.text()
+        pageTitle = (new DOMParser()).parseFromString(pageRawBody, "text/html").title;
+        return {url: pageUrl, title: pageTitle}
+    }catch(ex) {
+        console.error("Encountered error while fetching the URL", pageUrl)
+    }finally{
+        return {url: pageUrl, title: pageTitle}
+    }
 }
 
 function addArticle(url:string, title:string){
     const currentDate = new Date()
     const currentDateString = currentDate.getDate().toString().padStart(2, "0") + "-" + (currentDate.getMonth()+1).toString().padStart(2, "0") + "-" + currentDate.getFullYear()
     console.log(currentDateString, url, title)
-    logseq.Editor.insertBlock(currentDateString, `[${title}](${url}) #Article #Todo`)
+    logseq.Editor.insertBlock(currentDateString, `[${title}](${url}) #Articles #Todo`)
 }
 
 
